@@ -17,6 +17,7 @@ class loginState:
         self.logout = logout
 
 
+
 class User:
     def __init__(self, isRoot, username, password):
         self.isRoot = isRoot
@@ -77,6 +78,11 @@ def checkFileDup(fileNameIn):
             return True
     return False
 
+def checkUserExists(userNameIn):
+    for userCheck in userList:
+        if userCheck.userName == userNameIn:
+            return True
+    return False
 
 #method that takes in list of user commands and creates global simplified commands list
 def makeCMDList(lines): #TODO make sure command to create root user is the first line
@@ -88,7 +94,7 @@ def makeCMDList(lines): #TODO make sure command to create root user is the first
         # group ifs by the argument count.
         if argCount > 5 or argCount < 1:
                 print("Invalid arguments. Incorrect count of clauses at command: " + line)
-        if argCount == 1:
+        elif argCount == 1:
             if(line.equals("logout")):
                 #TODO
                 return
@@ -99,14 +105,50 @@ def makeCMDList(lines): #TODO make sure command to create root user is the first
                 print("Invalid arguments. Unrecognized command: " + line)
                 return
 
-        if argCount == 2:
+        elif argCount == 2:
             if argList[0] == "groupadd" and (argList[1] is not None and len(argList[1]) < 30 and argList[1] != "nil"
                                              and not checkGroupDup(argList[1])):
                 #TODO
                 return
-            if argList[0] == "mkfile" and (loggedIn.login is not None and not checkFileDup(arlList[1])):
+            elif argList[0] == "mkfile" and (loggedIn.login is not None and not checkFileDup(argList[1])):
                 #TODO
                 return
+            elif argList[0] == "readfile" and (checkFileDup(argList[1])): #Check permissions later
+                #TODO
+                return
+            elif argList[0] == "execute" and (checkFileDup(argList[1])): #Check permissions later
+                #TODO
+                return
+            elif arglist[0] == "ls" and (checkFileDup(argList[1])): #Check permissions later
+                #TODO
+                return
+            else:
+                print("Invalid arguments. Unrecognized command: " + line)
+                return
+
+        elif argCount == 3:
+            if argList[0] == "usergrp" and (loginState.login.isRoot and checkUserExists(argList[1])
+                                            and checkGroupDup(argList[2])):
+                #TODO
+                return
+            elif argList[0] == "useradd" and (loginState.login.isRoot and not checkUserExists(argList[1])):
+                #TODO
+                return
+            elif argList[0] == "chown" and (loginState.login.isRoot and checkFileDup(argList[1]))\
+                    and checkUserExists(arglist[2]):
+                #TODO
+                return
+            elif argList[0] == "hgrp" and ((loginState.login.isRoot or loginState.login.username) #2nd part of or is wrong. add perms later
+                                           and checkFileDup(argList[1]) and checkUserExists(argList[2])):
+                #TODO
+                return
+            elif argList[0] == "write" and (checkFileDup(argList[1]) and ()): #add perms later
+                #TODO
+                return
+
+
+
+
 
 
         return
