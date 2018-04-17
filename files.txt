@@ -1,0 +1,1 @@
+file1.txt rw- --- ---/nfile2.txt rw- rw- r--/nfile1.txt tom rw- --- ---/nfile2.txt alice rw- rw- r--/n
