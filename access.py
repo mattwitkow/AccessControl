@@ -3,7 +3,8 @@ import sys
 import re
 from sets import Set
 
-auditFile = 
+auditFile = open("audit.txt","a")
+
 
 filename = sys.argv[-1]
 #make sure it's a texot file in the command line
@@ -212,6 +213,14 @@ def checkCanExecute(userNameIn, fileNameIn):
         return True
     return False
 
+def fillWrite(splitlist):
+    stringyboi = ''
+    i = 2
+    for i in range (len(splitlist)):
+        stringyboi += splitlist[i] + " "
+    return stringyboi
+
+
 #method that takes in list of user commands and creates global simplified commands list
 def makeCMDList(lines): #TODO make sure command to create root user is the first line
     linecount = 0
@@ -226,13 +235,15 @@ def makeCMDList(lines): #TODO make sure command to create root user is the first
                 print("Invalid arguments. Incorrect count of clauses at command: " + line)
                 return
         elif argList[0] == "useradd" and linecount == 1 and argList[1] == "root" and argCount == 3:
-            print("useraddroot\n")
+            print("root user created\n")
+            auditFile.write("root user created\n")
             rootUser = User(True, "root", argList[2])
             userListGlobal.add(rootUser)
         elif argList[0] == "write" and not loggedIn.logLock and (checkFileDup(argList[1]) ): #add perms later
             #print loggedIn.login.username
             if checkCanWrite(loggedIn.login.username, argList[1]):
-                print "cool, wrote" + argList[1] + "| author: " + loggedIn.login.username
+                auditFile.write("user " + loggedIn.login.username + "wrote " + fillWrite(argList) + "\n")
+                print "user " + loggedIn.login.username + "wrote " + fillWrite(argList) + "\n"
                 #return
 
             # TODO
@@ -240,9 +251,11 @@ def makeCMDList(lines): #TODO make sure command to create root user is the first
 
         elif argCount == 1 and not loggedIn.logLock:
             if line == "logout":
+                outtie = loggedIn.login.username
                 loggedIn.logLock = True
                 loggedIn.login = None
-                print("logout\n")
+                auditFile.write("user logout " +outtie +"\n")
+                print("user logout " +outtie +"\n")
                 #TODO
             #    return
             elif line == "end" and not loggedIn.logLock:
