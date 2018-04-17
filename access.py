@@ -2,8 +2,11 @@
 import sys
 import re
 from sets import Set
+
+auditFile = 
+
 filename = sys.argv[-1]
-#make sure it's a text file in the command line
+#make sure it's a texot file in the command line
 if not filename[-4:] == '.txt':
     print('invalid file type')
     sys.exit(0)
@@ -44,7 +47,7 @@ class File:
 
 class Group:#add check later to snsure no duplicate groups
     def __init__(self, groupName):
-       self.userList = list()
+       self.userList = set()
        self.groupName = groupName
        #link files and permissions
        self.filePermMap = {}
@@ -56,11 +59,11 @@ class Group:#add check later to snsure no duplicate groups
 loggedIn = loginState()
 loggedIn.logLock = True
 #holds the group objects
-groupList = list()
+groupList = set()
 #holds the files
-fileList = list()
+fileList = set()
 #holds the users
-userList = list()
+userListGlobal = set()
 
 
 def checkGroupDup(groupNameIn):
@@ -80,18 +83,18 @@ def checkFileDup(fileNameIn):
     return False
 
 def checkUserExists(userNameIn):
-    for userCheck in userList:
+    for userCheck in userListGlobal:
         if userCheck.username == userNameIn:
             return True
     return False
 def getUser(userNameIn):
-    for userCheck in userList:
+    for userCheck in userListGlobal:
         if userCheck.username == userNameIn:
             return userCheck
     return None
 def getFile(fileNameIn):
     for fileCheck in fileList:
-        if fileCheck.filename == fileNameIn:
+        if fileCheck.fileName == fileNameIn:
             return fileCheck
     return None
 
@@ -122,14 +125,18 @@ def checkUserInGroup(userNameIn, groupNameIn):
 
 #see what file permissions the user gets because of the group they're in. None if they're not in group
 def checkUserGroupPerms(userNameIn, groupNameIn,fileName):
-    group = None
-    for groupCheck in groupList:
-        if groupNameIn == groupCheck:
-            group = groupCheck
+
+
+
+    group = getGroup(groupNameIn)
     if group is None:
+
         return None
+
+
     if checkUserInGroup(userNameIn, groupNameIn):
         fileMap = group.filePermMap
+
         return fileMap[fileName]
 
     return None
@@ -146,20 +153,64 @@ def checkCanRead(userNameIn, fileNameIn):
         return False
     if user.isRoot:
         return True
-    if file.owner.userNameIn == user.userNameIn:#check owner perms
+    if file.owner.username == user.username:#check owner perms
         if file.perms1[0:1] == "r":
             return True
-        else:
-            return False
     if file is not None and file.groupName != "nil":
         perms = checkUserGroupPerms(userNameIn, file.groupName, fileNameIn)
         if perms is not None and perms[0:1] == "r":
             return True
+    #print (file.perms3)
     if file.perms3[0:1] == "r":
         return True
     return False
+def checkCanWrite(userNameIn, fileNameIn):
+    #print userNameIn
+    #print fileNameIn
+    user = getUser(userNameIn)
+    file = getFile(fileNameIn)
+    #print "file gname " + file.groupName
+    if user is None:
+        return False
+    if user.isRoot:
+        return True
 
+    if file.owner.username == user.username:#check owner perms
 
+        if file.perms1[1:2] == "w":
+            return True
+    if file is not None :
+
+        perms = checkUserGroupPerms(userNameIn, file.groupName, fileNameIn)
+
+        if perms is not None and perms[1:2] == "w":
+
+            return True
+    #print (file.perms3)
+    if file.perms3[1:2] == "w":
+        return True
+
+    return False
+
+def checkCanExecute(userNameIn, fileNameIn):
+
+    user = getUser(userNameIn)
+    file = getFile(fileNameIn)
+    if user is None:
+        return False
+    if user.isRoot:
+        return True
+    if file.owner.username == user.username:#check owner perms
+        if file.perms1[2:3] == "x":
+            return True
+    if file is not None and file.groupName != "nil":
+        perms = checkUserGroupPerms(userNameIn, file.groupName, fileNameIn)
+        if perms is not None and perms[2:3] == "x":
+            return True
+    #print (file.perms3)
+    if file.perms3[2:3] == "x":
+        return True
+    return False
 
 #method that takes in list of user commands and creates global simplified commands list
 def makeCMDList(lines): #TODO make sure command to create root user is the first line
@@ -177,7 +228,12 @@ def makeCMDList(lines): #TODO make sure command to create root user is the first
         elif argList[0] == "useradd" and linecount == 1 and argList[1] == "root" and argCount == 3:
             print("useraddroot\n")
             rootUser = User(True, "root", argList[2])
-            userList.append(rootUser)
+            userListGlobal.add(rootUser)
+        elif argList[0] == "write" and not loggedIn.logLock and (checkFileDup(argList[1]) ): #add perms later
+            #print loggedIn.login.username
+            if checkCanWrite(loggedIn.login.username, argList[1]):
+                print "cool, wrote" + argList[1] + "| author: " + loggedIn.login.username
+                #return
 
             # TODO
            # return  and
@@ -204,23 +260,27 @@ def makeCMDList(lines): #TODO make sure command to create root user is the first
                                             and len(argList[1]) < 30 and argList[1] != "nil"
                                              and not checkGroupDup(argList[1])):
                 groupGuy = Group(argList[1])
-                groupList.append(groupGuy)
+                groupList.add(groupGuy)
                 print("groupadd\n")
                 #TODO
               #  return
             elif argList[0] == "mkfile" and not loggedIn.logLock and (loggedIn.login is not None and not checkFileDup(argList[1])):
 
                 madeFile = File(argList[1], loggedIn.login, "rw-","---","---")
-                fileList.append(madeFile)
+                fileList.add(madeFile)
 
                 print("mkfile\n")
                 #TODO
                # return
             elif argList[0] == "read" and not loggedIn.logLock and (checkFileDup(argList[1])): #Check permissions later
+                if checkCanRead(loggedIn.login.username, argList[1]):
+                    print "cool, read" + argList[1]
                 print("readfile\n")
                 #TODO
                 #return
             elif argList[0] == "execute" and not loggedIn.logLock and (checkFileDup(argList[1])): #Check permissions later
+                if checkCanExecute(loggedIn.login.username, argList[1]):
+                    print "cool, executed" + argList[1]
                 print("execute\n")
                 #TODO
                 #return
@@ -233,8 +293,10 @@ def makeCMDList(lines): #TODO make sure command to create root user is the first
                 return
 
         elif argCount == 3:
-            if argList[0] == "usergrp" and not loggedIn.logLock and (loggedIn.login.isRoot and checkUserExists(argList[1])
-                                            and checkGroupDup(argList[2])):
+            if argList[0] == "usergrp" and not loggedIn.logLock and (loggedIn.login.isRoot and checkUserExists(argList[1])) and checkGroupDup(argList[2]):
+
+                getGroup((argList[2])).userList.add(getUser(argList[1]))
+
                 #TODO
                 print("usergrp\n")
                 #return
@@ -242,23 +304,42 @@ def makeCMDList(lines): #TODO make sure command to create root user is the first
 
                 #TODO
                 user = User(False, argList[1], argList[2])
-                userList.append(user)
+                userListGlobal.add(user)
                 print("useradd\n")
                 #return
             elif argList[0] == "chown" and not loggedIn.logLock and (loggedIn.login.isRoot and checkFileDup(argList[1]))\
                     and checkUserExists(argList[2]):
+                #tempPerms = getFile(argList[1]).perms1
+
+                getFile(argList[1]).owner = getUser(argList[2])
+
                 print("chown\n")
                 #TODO
                 #return
-            elif argList[0] == "chgrp" and not loggedIn.logLock and checkGroupDup(argList[2]) and ((loggedIn.login.isRoot or checkUserOwns(loggedIn.login.username, argList[1]))
-                                           and checkFileDup(argList[1]) ):
-                print("chgrp\n")
+            elif argList[0] == "chgrp" and not loggedIn.logLock and checkGroupDup(argList[2]) and \
+                    ((loggedIn.login.isRoot or checkUserOwns(loggedIn.login.username, argList[1]))
+                                           and checkFileDup(argList[1])):
+                #print "boi"
+                #get old group
+               # print getFile(argList[1]).perms1+ " " + getFile(argList[1]).perms2 +" " +getFile(argList[1]).perms3
+                file = getFile(argList[1])
+
+                if file.groupName == "nil":
+                   # print 'boi1'
+
+                    getGroup(argList[2]).filePermMap[argList[1]] = getFile(argList[1]).perms2
+                    file.groupName = argList[2]
+
+                else:
+                    #print 'boi2'
+                    tempperms = getGroup(file.groupName).filePermMap[argList[1]]#temp swap to update new perms
+                    getGroup(file.groupName).filePermMap[argList[1]] = "nil"
+                    getGroup(argList[2]).filePermMap[argList[1]] = tempperms
+                    file.groupName = argList[2]
+               # print("chgrp   "+ getGroup(argList[2]).filePermMap[argList[1]] +"\n")
                 #TODO
                 #return
-            elif argList[0] == "write" and not loggedIn.logLock and (checkFileDup(argList[1]) and ()): #add perms later
-                #TODO
-                print("write\n")
-                #return
+
 
             elif argList[0] == "login" and loggedIn.logLock:
 
@@ -285,6 +366,10 @@ def makeCMDList(lines): #TODO make sure command to create root user is the first
                                          loggedIn.login.isRoot)) and(checkPermCharsValid(argList[2]) and
                                                                       checkPermCharsValid(argList[3]) and
                                                                       checkPermCharsValid(argList[4])):
+                file = getFile(argList[1])
+                file.perms1 = argList[2]
+                file.perms2 = argList[3]
+                file.perms3 = argList[4]
 
                 #TODO
                 print("chmod\n")
@@ -297,6 +382,7 @@ def makeCMDList(lines): #TODO make sure command to create root user is the first
     return
         #keep going up to 5
 makeCMDList(lines)
+
 
 
 
